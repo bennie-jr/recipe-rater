@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argo-cd
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  project: default
+  source:
+    chart: kube-prometheus-stack
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 56.6.2
+    helm:
+      releaseName: monitoring
+      values: | 
+        namespaceOverride: "monitoring"
+        alertmanager:
+          alertmanagerSpec:
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: "standard"
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 2Gi
+        grafana:
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            annotations:
+              nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+              nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+            # labels:
+            hosts:
+              - benniecrm.ddns.net
+            path: /
+          persistence:
+            enabled: true
+            type: sts
+            storageClassName: "standard"
+            accessModes:
+              - ReadWriteOnce
+            size: 5Gi
+        prometheus:
+          prometheusSpec:
+            podMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorSelectorNilUsesHelmValues: false
+            additionalScrapeConfigs: 
+              - job_name: ingress_controller
+                honor_timestamps: true
+                scrape_interval: 1m
+                scrape_timeout: 1m
+                metrics_path: /metrics
+                scheme: http
+                static_configs:
+                  - targets:
+                      - ingress-nginx-controller-metrics.ingress-nginx.svc.cluster.local:10254
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - ServerSideApply=true
+      - createNamespace=true

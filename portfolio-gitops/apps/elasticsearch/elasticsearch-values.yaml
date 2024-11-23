@@ -1,0 +1,23 @@
+elasticsearch:
+  data:
+    persistence:
+      size: 3Gi
+  resources:
+    requests:
+      memory: "500Mi"
+      cpu: "0.5"
+    limits:
+      memory: "2Gi"
+      cpu: "1"
+
+master:
+  replicaCount: 1
+
+data:
+  replicaCount: 1
+
+ingest:
+  replicaCount: 1
+
+coordinating:
+  replicaCount: 1

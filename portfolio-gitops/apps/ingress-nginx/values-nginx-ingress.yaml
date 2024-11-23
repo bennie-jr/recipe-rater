@@ -1,0 +1,26 @@
+namespaceOverride: ingress-nginx
+controller:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 90Mi
+
+
+# turn on metrics when Prometheus is deployed
+  metrics:
+    port: 10254
+    portName: metrics
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+    serviceMonitor:
+      enabled: true
+      additionalLabels: {}
+      annotations: {}
+      namespace: ""
+      namespaceSelector: {}
+      scrapeInterval: 15s
+      honorLabels: true

@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Values.appName }}-podmonitor
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  podMetricsEndpoints:
+  - port: http
+    interval: 15s
+    path: /metrics
+    scheme: http

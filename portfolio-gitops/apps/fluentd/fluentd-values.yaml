@@ -1,0 +1,18 @@
+aggregator:
+  enabled: true
+  configMap: elasticsearch-output
+  extraEnvVars:
+    - name: ELASTICSEARCH_HOST
+      value: "elasticsearch.efk-logging.svc.cluster.local" 
+    - name: ELASTICSEARCH_PORT
+      value: "9200"
+
+
+forwarder:
+  configMap: apache-log-parser
+
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 1Gi

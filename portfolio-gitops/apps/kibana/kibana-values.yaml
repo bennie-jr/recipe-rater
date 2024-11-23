@@ -1,0 +1,6 @@
+elasticsearch:
+  hosts: 
+    - "elasticsearch.efk-logging.svc.cluster.local"
+  port: "9200"
+service:
+  type: LoadBalancer

@@ -1,0 +1,49 @@
+appName: recipe-rater
+appNginxName: reciperater-nginx
+serviceName: recipe-rater-service
+replicaCount: 2
+image:
+  repository: 644435390668.dkr.ecr.ap-south-1.amazonaws.com/reciperater
+  pullPolicy: Always
+  tag: 1.0.5
+imageNginx:
+  repository: 644435390668.dkr.ecr.ap-south-1.amazonaws.com/reciperater-nginx
+  pullPolicy: Always
+  tag: 1.0.5
+containerPort: 8085
+port: 80
+configMapName: recipe-rater-conf
+nginxConfigMapName: recipe-rater-nginx-conf
+nginxVolumeName: nginx-config
+secret: 
+  name: rr-mongo-secret
+  type: Opaque
+issuerName: letsencrypt-nginx
+email: dylantom80@outlook.com
+privateKeySecretName: letsencrypt-nginx-private-key
+
+# requests:
+#   cpu: 100m
+#   memory: 90Mi
+
+ingressClassName: nginx
+host: dhoody.ddns.net
+
+ingress:
+  enabled: true
+
+
+
+mongodb:
+  fullnameOverride: "mongodb"
+  image:
+    pullPolicy: Always
+  architecture: replicaset
+  arbiter:
+    enabled: true
+  port: 27017
+  auth:
+    existingSecret: "rr-mongo-secret"
+  replicaCount: 3
+  persistence:
+    size: 1Gi
