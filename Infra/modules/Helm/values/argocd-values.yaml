@@ -1,0 +1,31 @@
+server:
+  ingress:
+    enabled: true
+    hosts:
+      - bennielj.tech
+    annotations:
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    ingressClassName: "nginx"
+    spec:
+      tls:
+        - hosts:
+            - bennielj.tech
+      rules:
+        - host: "bennielj.tech"
+          http:
+            paths:
+              - path: "/"
+                pathType: Prefix
+                backend:
+                  service:
+                    name: "argocd-server"
+                    port:
+                      number: 80
+
+configs:
+  params:
+    server.insecure: true
+  secret:
+    argocdServerAdminPassword: "$2a$12$/LS2o1a8e.yP8gSSrQ3iLu1V.Ys/w2jSJYjO8jtCuDPGh/SzGvcUK"
