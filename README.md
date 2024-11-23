@@ -3,6 +3,9 @@
 ## General Overview
 Recipe-rater is a cloud-native application platform demonstrating modern DevOps practices, infrastructure automation, and GitOps principles. Originally developed on a self hosted GitLab docker container to leverage its powerful CI/CD options that are useful in the project.
 
+Working on this project was exciting because it centers around something I love (food). Recipe Rater
+is an app that lets you look through a bunch of recipes and rate them.
+
 ## Architecture Diagram
 ![Architecture Diagram](./Architecture%20Diagram/Portfolio.drawio.png)
 ![Architecture Diagram](./Architecture%20Diagram/Screenshot%20from%202024-02-20%2005-14-28.png)
