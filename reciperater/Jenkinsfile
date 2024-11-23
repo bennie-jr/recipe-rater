@@ -1,0 +1,143 @@
+pipeline {
+agent any
+environment {
+    TAG = '0'
+    remoteTag = ''
+    APP_IMAGE = "reciperater"
+    NGINX_IMAGE = "reciperater-nginx"
+}
+
+triggers {
+    gitlab(triggerOnPush: true, triggerOnMergeRequest: true, branchFilterType: 'All')
+}
+
+options {
+    timestamps()
+}
+
+stages {
+    stage('checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Calculate Version and Tag') {
+      steps {
+            script{
+                sh "git fetch --tags"
+                check_tag = sh(script:'git tag --sort=-version:refname --merged=$(git rev-parse --abbrev-ref HEAD) | head -1', returnStdout: true)
+                if (check_tag){
+                    echo "Tag from git 3-digit"
+                    echo "${check_tag}"
+                    def currentMajorMinor = "${check_tag.split('\\.')[0]}.${check_tag.split('\\.')[1]}"
+                    TAG = "${check_tag.split('\\.')[2]}"
+                    TAG = "$TAG".toInteger() + 1
+                    remoteTag = "${check_tag.split('\\.')[0]}.${check_tag.split('\\.')[1]}.$TAG"
+                    echo "$remoteTag"    
+                }else {
+                    echo "check tag is empty"
+                    echo 'Creating new realease'
+                    def versionFile = readFile('v.txt').trim()
+                    (major, minor, patch) = versionFile.tokenize('.')
+                    patch = patch.toInteger()
+                    echo 'New patch tag'
+                    remoteTag = "$major.$minor.$patch"
+                    echo "$remoteTag"
+                }
+            }
+       }
+    }             
+    
+    stage('Build') {
+      steps{
+        script {
+          echo "***Building ${APP_IMAGE} Application****"
+          sh "docker build -f Dockerfile -t ${APP_IMAGE}:${remoteTag} ."
+          echo "***Building ${NGINX_IMAGE}"
+          sh "docker build -f Dockerfile.nginx -t ${NGINX_IMAGE}:${remoteTag} ."
+        }
+      }
+    }
+
+    stage('E2E-Test') {
+      when {
+        anyOf {
+          branch 'main'
+          branch 'feature/*'
+        }
+      }
+      steps {
+        script {
+          withCredentials([file(credentialsId: 'reciperater-env', variable: 'RR_ENV')])  {
+            sh 'cp $RR_ENV .env'
+            sh "ls -la"
+            echo "***RUNNING E2E tests with Docker Compose***"
+            def composeUpExitCode = sh(script: "VERSION=${remoteTag} docker compose -f docker-compose.yaml up -d", returnStatus: true)
+            sh "chmod +x app/tests/e2e-login.sh"
+            def loginTestExitCode = sh(script: "app/tests/e2e-login.sh", returnStatus: true)
+            if (loginTestExitCode != 0) {
+              currentBuild.result = 'FAILURE'
+              error "Login test failed"
+            }
+            // sh "docker compose down -v"
+          }
+        }
+      }
+    }
+
+    stage("Package"){
+      steps{
+        sh "docker tag ${APP_IMAGE}:${remoteTag} 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${APP_IMAGE}:${remoteTag}"
+        sh "docker tag ${NGINX_IMAGE}:${remoteTag} 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${NGINX_IMAGE}:${remoteTag}"
+      }
+    }
+
+    stage('Publish') {
+      when {
+        branch 'main'
+      }
+      steps {
+        sh "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 644435390668.dkr.ecr.ap-south-1.amazonaws.com"
+        sh "docker push 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${APP_IMAGE}:${remoteTag}"
+        sh "docker push 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${NGINX_IMAGE}:${remoteTag}"
+      }
+    }
+
+    stage('Tag and Push') {
+      when {
+        branch 'main'
+      }
+      steps {
+        script{
+            sh "git clean -f"
+            sh "git tag ${remoteTag} -m 'release version ${remoteTag}'"
+            sh "git push origin ${remoteTag}"
+        }
+      }
+    }
+}  
+  
+ post {
+        always {
+            echo 'Cleanup after everything!'
+            sh "docker compose down -v"
+            cleanWs()
+            sh "docker rmi -f ${APP_IMAGE}:${remoteTag}"
+            sh "docker rmi -f ${NGINX_IMAGE}:${remoteTag}"
+            sh "docker rmi -f 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${APP_IMAGE}:${remoteTag}"
+            sh "docker rmi -f 644435390668.dkr.ecr.ap-south-1.amazonaws.com/${NGINX_IMAGE}:${remoteTag}"
+        }
+         success {
+            script {
+                updateGitlabCommitStatus name: 'build', state: 'success'
+            }
+        }
+        failure {
+            script {
+                updateGitlabCommitStatus name: 'build', state: 'failed'
+            }
+        }
+
+    }
+}

@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  mongodb:
+    image: bitnami/mongodb
+    ports:
+      - "27017"
+    volumes:
+      - mongodbdata:/bitnami/mongodb
+      - ./createuserdb.sh:/docker-entrypoint-initdb.d/createuserdb.sh
+    networks:
+      - mongo-net
+    env_file:
+      - .env
+    # environment:
+    #   - discovery.type=single-node
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  recipe-rater-service:
+    image: reciperater:${VERSION}
+    ports:
+      - "8085"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - proxy_net
+      - mongo-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    env_file:
+      - .env
+
+  webserver:
+    image: reciperater-nginx:${VERSION}
+    ports:
+      - "5000:80"
+    networks:
+      - proxy_net
+    depends_on:
+      recipe-rater-service:
+        condition: service_started
+
+networks:
+  proxy_net:
+  mongo-net:
+
+volumes:
+  mongodbdata:

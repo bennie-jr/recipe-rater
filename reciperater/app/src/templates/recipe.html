@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/recipe.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Recipe Details</h1>
+    </header>
+    <main>
+        <div class="recipe-details">
+            <div class="recipe-image">
+                <img src="{{ recipe.thumbnail }}" alt="Recipe Image" id="recipeImage">
+            </div>
+            <div class="recipe-info">
+                <h2>{{ recipe.recipeName }}</h2>
+                <p><strong>Category:</strong> <span>{{ recipe.category }}</span></p>
+                <p><strong>Area:</strong> <span>{{ recipe.area }}</span></p>
+                <h3>Ingredients:</h3>
+                <ul>
+                    {% for ingredient in recipe.ingredients %}
+                        <li>{{ ingredient }}</li>
+                    {% endfor %}
+                </ul>
+                <h3>Instructions:</h3>
+                <p>{{ recipe.instructions }}</p>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; {{ current_year }} Recipe Rater</p>
+    </footer>
+    <script src="{{ url_for('static', filename='js/recipe.js') }}"></script>
+</body>
+</html>

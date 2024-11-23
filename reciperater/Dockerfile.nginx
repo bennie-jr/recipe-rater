@@ -1,0 +1,7 @@
+FROM nginx:stable-alpine3.17
+
+# Copy only necessary files from the compile stage
+COPY  /app/src/static /usr/share/nginx/static
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
